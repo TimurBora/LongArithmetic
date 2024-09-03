@@ -10,8 +10,6 @@ using std::vector;
 const int DEFAULT_BASE = 2;
 const int DEFAULT_MAX_DIGITS = 1000;
 
-// [1] [23] [45] + 123
-
 void ConvertStringsToIntegers(std::vector<int> &integerVector, const std::vector<std::string> &stringVector);
 std::vector<int> SplitStringToDigits(const std::string &inputString, int BASE);
 std::vector<std::string> SplitStringIntoParts(const std::string &stringToSplit, int BASE);
@@ -35,26 +33,45 @@ public:
         return this->digits;
     }
 
-    void AddValue(int value) {
-        int numParts = 0;
-        int ten = std::pow(10, this->BASE);
-        while (value / ten >= 0) {
-            numParts += 1;
+    void Addition(long long int number) {
+        int numDigits = 0;
+        const int TEN_TO_BASE = std::pow(10, this->BASE);
+        int baseMultiplier = TEN_TO_BASE;
 
-            if (value / ten == 0) {
+        while (number / baseMultiplier >= 0) {
+            numDigits += 1;
+
+            if (number / baseMultiplier == 0) {
                 break;
             }
 
-            ten = ten * ten;
+            baseMultiplier *= baseMultiplier;
         }
 
-        ten = std::pow(10, this->BASE);
-        // std::vector<int> digits = getDigits();
-        for (int i = 0; i < numParts; i++) {
-            this->digits[i + 1] += value % ten;
-            value /= ten;
-            ten = ten * ten;
+        while (this->digits[0] < numDigits) {
+            this->digits.push_back(0);
+            this->digits[0] += 1;
         }
+
+        baseMultiplier = TEN_TO_BASE;
+        for (int digitIndex = 1; digitIndex <= numDigits; digitIndex++) { // Start with i = 1, because
+            this->digits[digitIndex] += number % baseMultiplier;          // first element is size of vector
+
+            if (this->digits[digitIndex] >= TEN_TO_BASE) {
+                if (this->digits[0] == digitIndex) {
+                    this->digits.push_back(0);
+                    this->digits[0] += 1;
+                }
+                this->digits[digitIndex + 1] += this->digits[digitIndex] / TEN_TO_BASE;
+                this->digits[digitIndex] %= TEN_TO_BASE;
+            }
+
+            number /= baseMultiplier;
+            baseMultiplier *= baseMultiplier;
+        }
+    }
+
+    void Multiply(long long int number) {
     }
 
     // LongArithmeticInt(int base = DEFAULT_BASE, int max_digits = DEFAULT_MAX_DIGITS, long long int inputString)
@@ -62,8 +79,8 @@ public:
 };
 
 int main() {
-    LongArithmeticInt ar{std::string("1000141248182471471848174812749182749184279814"), 9};
-    ar.AddValue(123);
+    LongArithmeticInt ar{std::string("0"), 2};
+    ar.Addition(1234);
 
     for (const int &digit : ar.getDigits()) {
         std::cout << digit << " ";
