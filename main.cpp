@@ -4,42 +4,17 @@
 #include <string>
 #include <vector>
 
+using std::string;
+using std::vector;
+
 const int DEFAULT_BASE = 2;
 const int DEFAULT_MAX_DIGITS = 1000;
 
-// BASE = 3
-// 12 345
-// remainderLenght = 2
-// numParts = 3
+// [1] [23] [45] + 123
 
-std::vector<int>
-SplitStringToDigits(std::string inputString, int BASE) {
-    std::vector<std::string> splitParts;
-
-    int remainderLength = inputString.size() % BASE;
-    int numParts = inputString.size() / BASE + (remainderLength != 0);
-
-    if (remainderLength != 0) {
-        std::string remainderPart = inputString.substr(0, remainderLength);
-        splitParts.push_back(remainderPart);
-    }
-
-    for (int i = 0; i < numParts - 1; i++) {
-        std::string part = inputString.substr(i * BASE + remainderLength, BASE);
-        splitParts.push_back(part);
-    }
-
-    std::reverse(splitParts.begin(), splitParts.end());
-
-    std::vector<int> digits;
-    digits.push_back(numParts);
-
-    for (const std::string &string : splitParts) {
-        digits.push_back(std::stoi(string));
-    }
-
-    return digits;
-}
+void ConvertStringsToIntegers(std::vector<int> &integerVector, const std::vector<std::string> &stringVector);
+std::vector<int> SplitStringToDigits(const std::string &inputString, int BASE);
+std::vector<std::string> SplitStringIntoParts(const std::string &stringToSplit, int BASE);
 
 class LongArithmeticInt {
 private:
@@ -60,12 +35,35 @@ public:
         return this->digits;
     }
 
-    // LongArithmeticInt(int base = DEFAULT_BASE_BY_TEN, int max_digits = DEFAULT_MAX_DIGITS, long long int inputString)
+    void AddValue(int value) {
+        int numParts = 0;
+        int ten = std::pow(10, this->BASE);
+        while (value / ten >= 0) {
+            numParts += 1;
+
+            if (value / ten == 0) {
+                break;
+            }
+
+            ten = ten * ten;
+        }
+
+        ten = std::pow(10, this->BASE);
+        // std::vector<int> digits = getDigits();
+        for (int i = 0; i < numParts; i++) {
+            this->digits[i + 1] += value % ten;
+            value /= ten;
+            ten = ten * ten;
+        }
+    }
+
+    // LongArithmeticInt(int base = DEFAULT_BASE, int max_digits = DEFAULT_MAX_DIGITS, long long int inputString)
     //     : BASE{base}, MAX_DIGITS{max_digits} {}
 };
 
 int main() {
-    LongArithmeticInt ar{std::string("12345"), 4};
+    LongArithmeticInt ar{std::string("1000141248182471471848174812749182749184279814"), 9};
+    ar.AddValue(123);
 
     for (const int &digit : ar.getDigits()) {
         std::cout << digit << " ";
@@ -76,4 +74,43 @@ int main() {
     } while (std::cin.get() != '\n');
 
     return 0;
+}
+
+std::vector<int> SplitStringToDigits(const std::string &inputString, int BASE) {
+    std::vector<std::string> splitParts;
+
+    splitParts = SplitStringIntoParts(inputString, BASE);
+
+    std::reverse(splitParts.begin(), splitParts.end());
+
+    std::vector<int> digits;
+    digits.push_back(splitParts.size());
+
+    ConvertStringsToIntegers(digits, splitParts);
+
+    return digits;
+}
+
+void ConvertStringsToIntegers(std::vector<int> &integerVector, const std::vector<std::string> &stringVector) {
+    for (const std::string &string : stringVector) {
+        integerVector.push_back(std::stoi(string));
+    }
+}
+
+std::vector<std::string> SplitStringIntoParts(const std::string &stringToSplit, int BASE) {
+    std::vector<std::string> splitParts;
+    int remainderLength = stringToSplit.size() % BASE;
+    int numParts = stringToSplit.size() / BASE + (remainderLength != 0);
+
+    if (remainderLength != 0) {
+        std::string remainderPart = stringToSplit.substr(0, remainderLength);
+        splitParts.push_back(remainderPart);
+    }
+
+    for (int i = 0; i < numParts - (remainderLength != 0); i++) {
+        std::string part = stringToSplit.substr(i * BASE + remainderLength, BASE);
+        splitParts.push_back(part);
+    }
+
+    return splitParts;
 }
