@@ -14,23 +14,39 @@ void ConvertStringsToIntegers(std::vector<int> &integerVector, const std::vector
 std::vector<int> SplitStringToDigits(const std::string &inputString, int BASE);
 std::vector<std::string> SplitStringIntoParts(const std::string &stringToSplit, int BASE);
 
-class LongArithmeticInt {
+class BigInt {
 private:
     const int BASE;
     const int MAX_DIGITS;
     std::vector<int> digits;
 
 public:
-    LongArithmeticInt(int BASE = DEFAULT_BASE, int MAX_DIGITS = DEFAULT_MAX_DIGITS)
-        : BASE{BASE}, MAX_DIGITS{MAX_DIGITS}, digits() {}
+    BigInt(int BASE = DEFAULT_BASE, int MAX_DIGITS = DEFAULT_MAX_DIGITS)
+        : BASE{BASE}, MAX_DIGITS{MAX_DIGITS} {
+        this->digits.push_back(0);
+    }
 
-    LongArithmeticInt(std::string inputString, int BASE = DEFAULT_BASE, int MAX_DIGITS = DEFAULT_MAX_DIGITS)
+    BigInt(std::string inputString, int BASE = DEFAULT_BASE, int MAX_DIGITS = DEFAULT_MAX_DIGITS)
         : BASE{BASE}, MAX_DIGITS{MAX_DIGITS} {
         this->digits = SplitStringToDigits(inputString, BASE);
     }
 
     std::vector<int> getDigits() {
         return this->digits;
+    }
+
+    std::string getStringDigits() {
+        const int TEN_TO_BASE = std::pow(10, this->BASE);
+        std::string digitsString{};
+        for (int i = this->digits.size() - 1; i >= 1; i--) {
+            std::string digitString = std::to_string(this->digits[i]);
+            while (digitString.size() < this->BASE) {
+                digitString = "0" + digitString;
+            }
+            digitsString += digitString;
+        }
+
+        return digitsString;
     }
 
     void Addition(long long int number) {
@@ -71,20 +87,41 @@ public:
         }
     }
 
-    void Multiply(long long int number) {
+    void Addition(const BigInt &bigInteger) {
+        const int TEN_TO_BASE = std::pow(10, this->BASE);
+        while (this->digits[0] < bigInteger.digits[0]) {
+            this->digits.push_back(0);
+            this->digits[0] += 1;
+        }
+
+        for (int digitIndex = 1; digitIndex <= bigInteger.digits[0]; digitIndex++) {
+            while (this->digits[digitIndex] + bigInteger.digits[digitIndex] >= TEN_TO_BASE) {
+                if (this->digits[0] == digitIndex) {
+                    this->digits.push_back(0);
+                    this->digits[0] += 1;
+                }
+
+                this->digits[digitIndex + 1] += 1;
+            }
+
+            this->digits[digitIndex] = (this->digits[digitIndex] + bigInteger.digits[digitIndex]) % TEN_TO_BASE;
+        }
     }
 
-    // LongArithmeticInt(int base = DEFAULT_BASE, int max_digits = DEFAULT_MAX_DIGITS, long long int inputString)
+    // BigInt(int base = DEFAULT_BASE, int max_digits = DEFAULT_MAX_DIGITS, long long int inputString)
     //     : BASE{base}, MAX_DIGITS{max_digits} {}
 };
 
 int main() {
-    LongArithmeticInt ar{std::string("0"), 2};
-    ar.Addition(1234);
+    BigInt ar{3};
+    BigInt ar1{std::string("10000"), 3};
+
+    ar.Addition(ar1);
 
     for (const int &digit : ar.getDigits()) {
         std::cout << digit << " ";
     }
+
     do {
         std::cout << '\n'
                   << "Press the Enter key to continue.";
