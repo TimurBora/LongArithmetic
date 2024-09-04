@@ -113,7 +113,7 @@ public:
     void operator*=(long long int number) {
         int numberDigitPosition = 0;
         int numOfDigitsToAdd = 0;
-        BigInt resultInteger{"0", 2};
+        BigInt resultInteger{"0", 9};
         while (number > 0) {
             BigInt mulBigInt = *this;
             if (number % 10 != 0) {
@@ -148,10 +148,10 @@ public:
 };
 
 int main() {
-    BigInt ar{"123", 2};
+    BigInt ar{"121231", 1};
     // BigInt ar1{std::string("10000"), 2};
 
-    ar *= 99;
+    ar *= 25131231;
 
     // std::string string = ar.getStringDigits();
     // std::cout << '\n'
