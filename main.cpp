@@ -113,20 +113,30 @@ public:
     void operator*=(long long int number) {
         int numberDigitPosition = 0;
         int numOfDigitsToAdd = 0;
-        BigInt resultInteger{"0", 9};
+        BigInt resultInteger{"0", this->BASE};
         while (number > 0) {
             BigInt mulBigInt = *this;
-            if (number % 10 != 0) {
-                for (int i = 1; i <= mulBigInt.digits[0]; i++) {
-                    mulBigInt.digits[i] *= (number % 10) * std::pow(10, numberDigitPosition);
-                }
+
+            // while (number % this->TEN_TO_BASE == 0) {
+            //     mulBigInt.digits.insert(mulBigInt.digits.begin() + 1, 0);
+            //     mulBigInt.digits[0] += 1;
+            //     number /= this->TEN_TO_BASE;
+            //     numberDigitPosition += 1;
+            // }
+
+            for (int i = 1; i <= mulBigInt.digits[0]; i++) {
+                mulBigInt.digits[i] *= (number % this->TEN_TO_BASE);
+            }
+            for (int i = 0; i < numberDigitPosition; i++) {
+                mulBigInt.digits.insert(mulBigInt.digits.begin() + 1, 0);
+                mulBigInt.digits[0] += 1;
             }
 
             for (int i = 1; i <= mulBigInt.digits[0]; i++) {
                 if (mulBigInt.digits[i] >= this->TEN_TO_BASE) {
                     if (mulBigInt.digits[0] == i) {
                         mulBigInt.digits.push_back(0);
-                        numOfDigitsToAdd += 1;
+                        mulBigInt.digits[0] += 1;
                     }
 
                     mulBigInt.digits[i + 1] += mulBigInt.digits[i] / this->TEN_TO_BASE;
@@ -134,9 +144,8 @@ public:
                 }
             }
 
-            mulBigInt.digits[0] += numOfDigitsToAdd;
             resultInteger += mulBigInt;
-            number /= 10;
+            number /= this->TEN_TO_BASE;
             numberDigitPosition += 1;
         }
 
@@ -148,10 +157,10 @@ public:
 };
 
 int main() {
-    BigInt ar{"121231", 1};
+    BigInt ar{"12", 2};
     // BigInt ar1{std::string("10000"), 2};
 
-    ar *= 25131231;
+    ar *= 99;
 
     // std::string string = ar.getStringDigits();
     // std::cout << '\n'
