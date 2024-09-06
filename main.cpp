@@ -157,10 +157,12 @@ public:
 };
 
 int main() {
-    BigInt ar{"12", 2};
+    BigInt ar{"1", 2};
     // BigInt ar1{std::string("10000"), 2};
 
-    ar *= 99;
+    for (int i = 1; i <= 100; i++) {
+        ar *= i;
+    }
 
     // std::string string = ar.getStringDigits();
     // std::cout << '\n'
