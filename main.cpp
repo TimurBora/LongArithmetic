@@ -59,15 +59,15 @@ public:
     }
 
     void operator+=(long long int number) {
-        int baseMultiplier = this->TEN_TO_BASE;
         int numDigits = static_cast<int>(std::floor(std::log(number) / std::log(this->TEN_TO_BASE))) + 1;
 
-        while (this->digits[0] < numDigits) {
-            this->digits.push_back(0);
-            this->digits[0] += 1;
+        int sizeDifference = numDigits - this->digits[0];
+        if (sizeDifference > 0) {
+            this->digits.resize(this->digits.size() + sizeDifference, 0);
+            this->digits[0] = numDigits;
         }
 
-        baseMultiplier = this->TEN_TO_BASE;
+        int baseMultiplier = this->TEN_TO_BASE;
         for (int digitIndex = 1; digitIndex <= numDigits; digitIndex++) { // Start with i = 1, because
             this->digits[digitIndex] += number % baseMultiplier;          // first element is size of vector
 
@@ -123,6 +123,18 @@ public:
         while (number > 0) {
             BigInt mulBigInt = *this;
 
+            for (int i = 1; i <= mulBigInt.digits[0]; i++) {
+                if (mulBigInt.digits[i] >= this->TEN_TO_BASE) {
+                    if (mulBigInt.digits[0] == i) {
+                        mulBigInt.digits.push_back(0);
+                        ++mulBigInt.digits[0];
+                    }
+
+                    mulBigInt.digits[i + 1] += mulBigInt.digits[i] / this->TEN_TO_BASE;
+                    mulBigInt.digits[i] %= this->TEN_TO_BASE;
+                }
+            }
+
             int multiplier = (number % this->TEN_TO_BASE);
             for (int i = 1; i <= mulBigInt.digits[0]; i++) {
                 mulBigInt.digits[i] *= multiplier;
@@ -164,10 +176,12 @@ public:
 };
 
 int main() {
-    BigInt ar{"10", 2};
-    BigInt ar1{std::string("9990"), 2};
+    BigInt ar{"1", 9};
+    // BigInt ar1{std::string("9990"), 2};
 
-    ar += ar1;
+    for (int i = 1; i <= 100; i++) {
+        ar *= i;
+    }
 
     for (const int &digit : ar.getDigits()) {
         std::cout << digit << " ";
