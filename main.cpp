@@ -4,11 +4,7 @@
 #include <string>
 #include <vector>
 
-using std::string;
-using std::vector;
-
 const int DEFAULT_BASE = 2;
-const int DEFAULT_MAX_DIGITS = 1000;
 
 void ConvertStringsToIntegers(std::vector<int> &integerVector, const std::vector<std::string> &stringVector);
 std::vector<int> SplitStringToDigits(const std::string &inputString, int BASE);
@@ -17,23 +13,23 @@ std::vector<std::string> SplitStringIntoParts(const std::string &stringToSplit, 
 class BigInt {
 private:
     const int BASE;
-    const int MAX_DIGITS;
-    std::vector<int> digits;
     const int TEN_TO_BASE;
+    std::vector<int> digits;
+    bool sign;
 
 public:
-    BigInt(int BASE = DEFAULT_BASE, int MAX_DIGITS = DEFAULT_MAX_DIGITS)
-        : BASE{BASE}, MAX_DIGITS{MAX_DIGITS}, TEN_TO_BASE{static_cast<int>(std::pow(10, BASE))} {
+    BigInt(int BASE = DEFAULT_BASE)
+        : BASE{BASE}, TEN_TO_BASE{static_cast<int>(std::pow(10, BASE))} {
         this->digits.push_back(0);
+        this->sign = true;
     }
 
-    BigInt(std::string inputString, int BASE = DEFAULT_BASE, int MAX_DIGITS = DEFAULT_MAX_DIGITS)
-        : BASE{BASE}, MAX_DIGITS{MAX_DIGITS}, TEN_TO_BASE{static_cast<int>(std::pow(10, BASE))} {
+    BigInt(std::string inputString, int BASE = DEFAULT_BASE)
+        : BASE{BASE}, TEN_TO_BASE{static_cast<int>(std::pow(10, BASE))} {
         this->digits = SplitStringToDigits(inputString, BASE);
     }
 
-    std::vector<int>
-    getDigits() {
+    std::vector<int> getDigits() {
         return this->digits;
     }
 
@@ -53,19 +49,18 @@ public:
         return digitsString;
     }
 
-    void operator+=(long long int number) {
-        int numDigits = 0;
-        int baseMultiplier = this->TEN_TO_BASE;
-
-        while (number / baseMultiplier >= 0) {
-            numDigits += 1;
-
-            if (number / baseMultiplier == 0) {
-                break;
-            }
-
-            baseMultiplier *= baseMultiplier;
+    BigInt &operator=(const BigInt &bigInteger) {
+        if (this == &bigInteger) {
+            return *this;
         }
+
+        this->digits = bigInteger.digits;
+        return *this;
+    }
+
+    void operator+=(long long int number) {
+        int baseMultiplier = this->TEN_TO_BASE;
+        int numDigits = static_cast<int>(std::floor(std::log(number) / std::log(this->TEN_TO_BASE))) + 1;
 
         while (this->digits[0] < numDigits) {
             this->digits.push_back(0);
@@ -90,53 +85,58 @@ public:
         }
     }
 
+    BigInt operator+(long long number) {
+        BigInt resultInteger = *this;
+        resultInteger += number;
+
+        return resultInteger;
+    }
+
     void operator+=(const BigInt &bigInteger) {
-        while (this->digits[0] < bigInteger.digits[0]) {
-            this->digits.push_back(0);
-            this->digits[0] += 1;
+        int sizeDifference = bigInteger.digits[0] - this->digits[0];
+        if (sizeDifference > 0) {
+            this->digits.resize(this->digits.size() + sizeDifference, 0);
+            this->digits[0] = bigInteger.digits[0];
         }
 
         for (int digitIndex = 1; digitIndex <= bigInteger.digits[0]; digitIndex++) {
-            while (this->digits[digitIndex] + bigInteger.digits[digitIndex] >= this->TEN_TO_BASE) {
-                if (this->digits[0] == digitIndex) {
-                    this->digits.push_back(0);
-                    this->digits[0] += 1;
-                }
-
-                this->digits[digitIndex + 1] += 1;
+            int sumOfDigits = (this->digits[digitIndex] + bigInteger.digits[digitIndex]);
+            if (this->digits[0] == digitIndex && sumOfDigits >= bigInteger.TEN_TO_BASE) {
+                this->digits.push_back(0);
+                this->digits[0] += 1;
             }
 
-            this->digits[digitIndex] = (this->digits[digitIndex] + bigInteger.digits[digitIndex]) % this->TEN_TO_BASE;
+            this->digits[digitIndex + 1] += sumOfDigits / this->TEN_TO_BASE;
+            this->digits[digitIndex] = sumOfDigits % this->TEN_TO_BASE;
         }
+    }
+
+    BigInt operator+(const BigInt &bigInteger) {
+        BigInt resultInteger = *this;
+        resultInteger += bigInteger;
+        return resultInteger;
     }
 
     void operator*=(long long int number) {
         int numberDigitPosition = 0;
-        int numOfDigitsToAdd = 0;
         BigInt resultInteger{"0", this->BASE};
         while (number > 0) {
             BigInt mulBigInt = *this;
 
-            // while (number % this->TEN_TO_BASE == 0) {
-            //     mulBigInt.digits.insert(mulBigInt.digits.begin() + 1, 0);
-            //     mulBigInt.digits[0] += 1;
-            //     number /= this->TEN_TO_BASE;
-            //     numberDigitPosition += 1;
-            // }
-
+            int multiplier = (number % this->TEN_TO_BASE);
             for (int i = 1; i <= mulBigInt.digits[0]; i++) {
-                mulBigInt.digits[i] *= (number % this->TEN_TO_BASE);
+                mulBigInt.digits[i] *= multiplier;
             }
-            for (int i = 0; i < numberDigitPosition; i++) {
-                mulBigInt.digits.insert(mulBigInt.digits.begin() + 1, 0);
-                mulBigInt.digits[0] += 1;
-            }
+
+            std::vector<int> zeros(numberDigitPosition, 0);
+            mulBigInt.digits.insert(mulBigInt.digits.begin() + 1, zeros.begin(), zeros.end());
+            mulBigInt.digits[0] += numberDigitPosition;
 
             for (int i = 1; i <= mulBigInt.digits[0]; i++) {
                 if (mulBigInt.digits[i] >= this->TEN_TO_BASE) {
                     if (mulBigInt.digits[0] == i) {
                         mulBigInt.digits.push_back(0);
-                        mulBigInt.digits[0] += 1;
+                        ++mulBigInt.digits[0];
                     }
 
                     mulBigInt.digits[i + 1] += mulBigInt.digits[i] / this->TEN_TO_BASE;
@@ -146,10 +146,17 @@ public:
 
             resultInteger += mulBigInt;
             number /= this->TEN_TO_BASE;
-            numberDigitPosition += 1;
+            ++numberDigitPosition;
         }
 
         this->digits = resultInteger.digits;
+    }
+
+    BigInt operator*(long long number) {
+        BigInt resultInteger = *this;
+        resultInteger *= number;
+
+        return resultInteger;
     }
 
     // BigInt(int base = DEFAULT_BASE, int max_digits = DEFAULT_MAX_DIGITS, long long int inputString)
@@ -157,16 +164,10 @@ public:
 };
 
 int main() {
-    BigInt ar{"1", 2};
-    // BigInt ar1{std::string("10000"), 2};
+    BigInt ar{"10", 2};
+    BigInt ar1{std::string("9990"), 2};
 
-    for (int i = 1; i <= 100; i++) {
-        ar *= i;
-    }
-
-    // std::string string = ar.getStringDigits();
-    // std::cout << '\n'
-    //           << string;
+    ar += ar1;
 
     for (const int &digit : ar.getDigits()) {
         std::cout << digit << " ";
