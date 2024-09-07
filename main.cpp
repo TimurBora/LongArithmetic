@@ -15,13 +15,23 @@ private:
     const int BASE;
     const int TEN_TO_BASE;
     std::vector<int> digits;
-    bool sign;
+
+    void NormalizeDigit(int i) {
+        if (this->digits[i] >= this->TEN_TO_BASE) {
+            if (this->digits[0] == i) {
+                this->digits.push_back(0);
+                ++this->digits[0];
+            }
+
+            this->digits[i + 1] += this->digits[i] / this->TEN_TO_BASE;
+            this->digits[i] %= this->TEN_TO_BASE;
+        }
+    }
 
 public:
     BigInt(int BASE = DEFAULT_BASE)
         : BASE{BASE}, TEN_TO_BASE{static_cast<int>(std::pow(10, BASE))} {
         this->digits.push_back(0);
-        this->sign = true;
     }
 
     BigInt(std::string inputString, int BASE = DEFAULT_BASE)
@@ -71,14 +81,7 @@ public:
         for (int digitIndex = 1; digitIndex <= numDigits; digitIndex++) { // Start with i = 1, because
             this->digits[digitIndex] += number % baseMultiplier;          // first element is size of vector
 
-            if (this->digits[digitIndex] >= this->TEN_TO_BASE) {
-                if (this->digits[0] == digitIndex) {
-                    this->digits.push_back(0);
-                    this->digits[0] += 1;
-                }
-                this->digits[digitIndex + 1] += this->digits[digitIndex] / this->TEN_TO_BASE;
-                this->digits[digitIndex] %= this->TEN_TO_BASE;
-            }
+            this->NormalizeDigit(digitIndex);
 
             number /= baseMultiplier;
             baseMultiplier *= baseMultiplier;
@@ -101,13 +104,9 @@ public:
 
         for (int digitIndex = 1; digitIndex <= bigInteger.digits[0]; digitIndex++) {
             int sumOfDigits = (this->digits[digitIndex] + bigInteger.digits[digitIndex]);
-            if (this->digits[0] == digitIndex && sumOfDigits >= bigInteger.TEN_TO_BASE) {
-                this->digits.push_back(0);
-                this->digits[0] += 1;
-            }
+            this->digits[digitIndex] = sumOfDigits;
 
-            this->digits[digitIndex + 1] += sumOfDigits / this->TEN_TO_BASE;
-            this->digits[digitIndex] = sumOfDigits % this->TEN_TO_BASE;
+            this->NormalizeDigit(digitIndex);
         }
     }
 
@@ -123,18 +122,6 @@ public:
         while (number > 0) {
             BigInt mulBigInt = *this;
 
-            for (int i = 1; i <= mulBigInt.digits[0]; i++) {
-                if (mulBigInt.digits[i] >= this->TEN_TO_BASE) {
-                    if (mulBigInt.digits[0] == i) {
-                        mulBigInt.digits.push_back(0);
-                        ++mulBigInt.digits[0];
-                    }
-
-                    mulBigInt.digits[i + 1] += mulBigInt.digits[i] / this->TEN_TO_BASE;
-                    mulBigInt.digits[i] %= this->TEN_TO_BASE;
-                }
-            }
-
             int multiplier = (number % this->TEN_TO_BASE);
             for (int i = 1; i <= mulBigInt.digits[0]; i++) {
                 mulBigInt.digits[i] *= multiplier;
@@ -145,15 +132,7 @@ public:
             mulBigInt.digits[0] += numberDigitPosition;
 
             for (int i = 1; i <= mulBigInt.digits[0]; i++) {
-                if (mulBigInt.digits[i] >= this->TEN_TO_BASE) {
-                    if (mulBigInt.digits[0] == i) {
-                        mulBigInt.digits.push_back(0);
-                        ++mulBigInt.digits[0];
-                    }
-
-                    mulBigInt.digits[i + 1] += mulBigInt.digits[i] / this->TEN_TO_BASE;
-                    mulBigInt.digits[i] %= this->TEN_TO_BASE;
-                }
+                NormalizeDigit(i);
             }
 
             resultInteger += mulBigInt;
@@ -171,16 +150,73 @@ public:
         return resultInteger;
     }
 
-    // BigInt(int base = DEFAULT_BASE, int max_digits = DEFAULT_MAX_DIGITS, long long int inputString)
-    //     : BASE{base}, MAX_DIGITS{max_digits} {}
+    void operator*=(const BigInt &mulBigInteger) {
+        int numberDigitPosition = 0;
+        BigInt resultInteger{"0", this->BASE};
+        for (int i = 1; i <= mulBigInteger.digits[0]; i++) {
+            BigInt tempBigInteger = *this;
+
+            int multiplier = mulBigInteger.digits[i];
+            for (int j = 1; j <= tempBigInteger.digits[0]; j++) {
+                tempBigInteger.digits[j] *= multiplier;
+            }
+
+            std::vector<int> zeros(numberDigitPosition, 0);
+            tempBigInteger.digits.insert(tempBigInteger.digits.begin() + 1, zeros.begin(), zeros.end());
+            tempBigInteger.digits[0] += numberDigitPosition;
+
+            NormalizeDigit(i);
+
+            resultInteger += tempBigInteger;
+            ++numberDigitPosition;
+        }
+
+        this->digits = resultInteger.digits;
+    }
+
+    BigInt operator*(const BigInt &bigInteger) {
+        BigInt resultInteger = *this;
+        resultInteger *= bigInteger;
+
+        return resultInteger;
+    }
+
+    BigInt &operator++() {
+        if (this->digits[0] == 0) {
+            this->digits.resize(this->digits.size() + 1, 0);
+            ++this->digits[0];
+        }
+
+        if (++this->digits[1] >= this->TEN_TO_BASE) {
+            if (this->digits[0] == 1) {
+                this->digits.resize(this->digits.size() + 1, 0);
+                ++this->digits[0];
+            }
+            ++this->digits[2];
+            this->digits[1] = 0;
+        }
+
+        return *this;
+    }
+
+    BigInt operator++(int) {
+        BigInt temp = *this;
+        ++(*this);
+        return temp;
+    }
 };
 
+// BigInt(int base = DEFAULT_BASE, int max_digits = DEFAULT_MAX_DIGITS, long long int inputString)
+//     : BASE{base}, MAX_DIGITS{max_digits} {}
 int main() {
-    BigInt ar{"1", 9};
-    // BigInt ar1{std::string("9990"), 2};
+    BigInt ar{"1", 4};
+    BigInt ar1{std::string("1"), 4};
 
-    for (int i = 1; i <= 100; i++) {
-        ar *= i;
+    // ar *= ar1;
+
+    for (int i = 1; i <= 5; i++) {
+        ++ar1;
+        ar *= ar1;
     }
 
     for (const int &digit : ar.getDigits()) {
