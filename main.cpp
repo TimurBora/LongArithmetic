@@ -224,11 +224,18 @@ public:
 int main() {
     BigInt ar{"1", 9};
 
-    for (int i = 1; i <= 100; i++) {
+    for (int i = 2; i <= 100000; i++) {
         ar *= i;
     }
 
-    std::cout << ar.getStringDigits();
+    std::ofstream outputFile;
+    outputFile.open("big_factor");
+
+    if (outputFile.is_open()) {
+        outputFile << ar.getStringDigits() << std::endl;
+    }
+
+    outputFile.close();
 
     // for (const int &digit : ar.getDigits()) {
     //     std::cout << digit << " ";
