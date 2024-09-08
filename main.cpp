@@ -1,22 +1,24 @@
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
 
 const int DEFAULT_BASE = 2;
 
-void ConvertStringsToIntegers(std::vector<int> &integerVector, const std::vector<std::string> &stringVector);
-std::vector<int> SplitStringToDigits(const std::string &inputString, int BASE);
+void ConvertStringsToIntegers(std::vector<uint_fast64_t> &integerVector, const std::vector<std::string> &stringVector);
+std::vector<uint_fast64_t> SplitStringToDigits(const std::string &inputString, int BASE);
 std::vector<std::string> SplitStringIntoParts(const std::string &stringToSplit, int BASE);
 
 class BigInt {
 private:
     const int BASE;
-    const int TEN_TO_BASE;
-    std::vector<int> digits;
+    const uint_fast64_t TEN_TO_BASE;
+    std::vector<uint_fast64_t> digits;
 
-    void NormalizeDigit(int i) {
+    inline void NormalizeDigit(int i) {
         if (this->digits[i] >= this->TEN_TO_BASE) {
             if (this->digits[0] == i) {
                 this->digits.push_back(0);
@@ -28,18 +30,26 @@ private:
         }
     }
 
+    static uint_fast64_t computeTenToBase(int base) {
+        uint_fast64_t value = 1;
+        for (int i = 0; i < base; ++i) {
+            value *= 10;
+        }
+        return value;
+    }
+
 public:
     BigInt(int BASE = DEFAULT_BASE)
-        : BASE{BASE}, TEN_TO_BASE{static_cast<int>(std::pow(10, BASE))} {
+        : BASE{BASE}, TEN_TO_BASE{computeTenToBase(BASE)} {
         this->digits.push_back(0);
     }
 
     BigInt(std::string inputString, int BASE = DEFAULT_BASE)
-        : BASE{BASE}, TEN_TO_BASE{static_cast<int>(std::pow(10, BASE))} {
+        : BASE{BASE}, TEN_TO_BASE{computeTenToBase(BASE)} {
         this->digits = SplitStringToDigits(inputString, BASE);
     }
 
-    std::vector<int> getDigits() {
+    std::vector<uint_fast64_t> getDigits() {
         return this->digits;
     }
 
@@ -68,7 +78,7 @@ public:
         return *this;
     }
 
-    void operator+=(long long int number) {
+    void operator+=(uint_fast64_t number) {
         int numDigits = static_cast<int>(std::floor(std::log(number) / std::log(this->TEN_TO_BASE))) + 1;
 
         int sizeDifference = numDigits - this->digits[0];
@@ -88,7 +98,7 @@ public:
         }
     }
 
-    BigInt operator+(long long number) {
+    BigInt operator+(uint_fast64_t number) {
         BigInt resultInteger = *this;
         resultInteger += number;
 
@@ -116,7 +126,7 @@ public:
         return resultInteger;
     }
 
-    void operator*=(long long int number) {
+    void operator*=(uint_fast64_t number) {
         int numberDigitPosition = 0;
         BigInt resultInteger{"0", this->BASE};
         while (number > 0) {
@@ -127,12 +137,11 @@ public:
                 mulBigInt.digits[i] *= multiplier;
             }
 
-            std::vector<int> zeros(numberDigitPosition, 0);
-            mulBigInt.digits.insert(mulBigInt.digits.begin() + 1, zeros.begin(), zeros.end());
+            mulBigInt.digits.insert(mulBigInt.digits.begin() + 1, numberDigitPosition, 0);
             mulBigInt.digits[0] += numberDigitPosition;
 
             for (int i = 1; i <= mulBigInt.digits[0]; i++) {
-                NormalizeDigit(i);
+                mulBigInt.NormalizeDigit(i);
             }
 
             resultInteger += mulBigInt;
@@ -140,10 +149,10 @@ public:
             ++numberDigitPosition;
         }
 
-        this->digits = resultInteger.digits;
+        this->digits = std::move(resultInteger.digits);
     }
 
-    BigInt operator*(long long number) {
+    BigInt operator*(uint_fast64_t number) {
         BigInt resultInteger = *this;
         resultInteger *= number;
 
@@ -165,7 +174,7 @@ public:
             tempBigInteger.digits.insert(tempBigInteger.digits.begin() + 1, zeros.begin(), zeros.end());
             tempBigInteger.digits[0] += numberDigitPosition;
 
-            NormalizeDigit(i);
+            tempBigInteger.NormalizeDigit(i);
 
             resultInteger += tempBigInteger;
             ++numberDigitPosition;
@@ -204,41 +213,43 @@ public:
         ++(*this);
         return temp;
     }
+
+    bool operator==(const BigInt &bigInteger) {
+        return this->digits == bigInteger.digits;
+    }
 };
 
-// BigInt(int base = DEFAULT_BASE, int max_digits = DEFAULT_MAX_DIGITS, long long int inputString)
+// BigInt(int base = DEFAULT_BASE, int max_digits = DEFAULT_MAX_DIGITS, uint_fast64_t inputString)
 //     : BASE{base}, MAX_DIGITS{max_digits} {}
 int main() {
-    BigInt ar{"1", 4};
-    BigInt ar1{std::string("1"), 4};
+    BigInt ar{"1", 9};
 
-    // ar *= ar1;
-
-    for (int i = 1; i <= 5; i++) {
-        ++ar1;
-        ar *= ar1;
+    for (int i = 1; i <= 100; i++) {
+        ar *= i;
     }
 
-    for (const int &digit : ar.getDigits()) {
-        std::cout << digit << " ";
-    }
+    std::cout << ar.getStringDigits();
 
-    do {
-        std::cout << '\n'
-                  << "Press the Enter key to continue.";
-    } while (std::cin.get() != '\n');
+    // for (const int &digit : ar.getDigits()) {
+    //     std::cout << digit << " ";
+    // }
+
+    // do {
+    //     std::cout << '\n'
+    //               << "Press the Enter key to continue.";
+    // } while (std::cin.get() != '\n');
 
     return 0;
 }
 
-std::vector<int> SplitStringToDigits(const std::string &inputString, int BASE) {
+std::vector<uint_fast64_t> SplitStringToDigits(const std::string &inputString, int BASE) {
     std::vector<std::string> splitParts;
 
     splitParts = SplitStringIntoParts(inputString, BASE);
 
     std::reverse(splitParts.begin(), splitParts.end());
 
-    std::vector<int> digits;
+    std::vector<uint_fast64_t> digits;
     digits.push_back(splitParts.size());
 
     ConvertStringsToIntegers(digits, splitParts);
@@ -246,7 +257,7 @@ std::vector<int> SplitStringToDigits(const std::string &inputString, int BASE) {
     return digits;
 }
 
-void ConvertStringsToIntegers(std::vector<int> &integerVector, const std::vector<std::string> &stringVector) {
+void ConvertStringsToIntegers(std::vector<uint_fast64_t> &integerVector, const std::vector<std::string> &stringVector) {
     for (const std::string &string : stringVector) {
         integerVector.push_back(std::stoi(string));
     }
