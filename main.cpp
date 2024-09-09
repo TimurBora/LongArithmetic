@@ -18,6 +18,8 @@ private:
     const uint_fast64_t TEN_TO_BASE;
     std::vector<uint_fast64_t> digits;
 
+    bool isNegative;
+
     inline void NormalizeDigit(int i) {
         if (this->digits[i] >= this->TEN_TO_BASE) {
             if (this->digits[0] == i) {
@@ -38,10 +40,41 @@ private:
         return value;
     }
 
+    bool isNumberBiggerThanBigInt(uint_fast64_t number) {
+        int numDigits = 0;
+        uint_fast64_t tempNumber = number;
+        while (tempNumber > 0) {
+            tempNumber /= this->TEN_TO_BASE;
+            numDigits++;
+        }
+
+        if (this->digits[0] < numDigits) {
+            return true;
+        }
+
+        if (this->digits[0] > numDigits) {
+            return true;
+        }
+
+        int baseMultiplier = std::pow(this->TEN_TO_BASE, numDigits - 1);
+
+        for (int i = this->digits[0]; i >= 1; i--) {
+            if (number / baseMultiplier > this->digits[i]) {
+                return true;
+            }
+
+            number /= this->TEN_TO_BASE;
+            baseMultiplier /= this->TEN_TO_BASE;
+        }
+
+        return false;
+    }
+
 public:
     BigInt(int BASE = DEFAULT_BASE)
         : BASE{BASE}, TEN_TO_BASE{computeTenToBase(BASE)} {
         this->digits.push_back(0);
+        this->isNegative = true;
     }
 
     BigInt(std::string inputString, int BASE = DEFAULT_BASE)
@@ -57,6 +90,11 @@ public:
         std::string digitsString{};
         for (int i = this->digits[0]; i >= 1; i--) {
             std::string digitString = std::to_string(this->digits[i]);
+
+            if (digitString == "0") {
+                continue;
+            }
+
             while (digitString.size() < this->BASE) {
                 if (i == this->digits[0]) {
                     break;
@@ -79,7 +117,12 @@ public:
     }
 
     void operator+=(uint_fast64_t number) {
-        int numDigits = static_cast<int>(std::floor(std::log(number) / std::log(this->TEN_TO_BASE))) + 1;
+        int numDigits = 0;
+        uint_fast64_t tempNumber = number;
+        while (tempNumber > 0) {
+            tempNumber /= this->TEN_TO_BASE;
+            numDigits++;
+        }
 
         int sizeDifference = numDigits - this->digits[0];
         if (sizeDifference > 0) {
@@ -126,25 +169,69 @@ public:
         return resultInteger;
     }
 
+    void operator-=(uint_fast64_t number) {
+        int numDigits = 0;
+        uint_fast64_t tempNumber = number;
+        while (tempNumber > 0) {
+            tempNumber /= this->TEN_TO_BASE;
+            numDigits++;
+        }
+
+        // int sizeDifference = numDigits - this->digits[0];
+        // if (sizeDifference > 0) {
+        //     this->digits.resize(this->digits.size() + sizeDifference, 0);
+        //     this->digits[0] = numDigits;
+        // }
+
+        if (this->isNumberBiggerThanBigInt(number)) {
+            for (int i = 1; i <= this->digits[0]; i++) {
+                number -= this->digits[i] * std::pow(this->TEN_TO_BASE, i - 1);
+                this->digits[i] = 0;
+            }
+            this->isNegative = true;
+            *this += number;
+            return;
+        }
+
+        int baseMultiplier = this->TEN_TO_BASE;
+        for (int digitIndex = 1; digitIndex <= numDigits; digitIndex++) {
+            if (this->digits[digitIndex] < number % baseMultiplier) {
+                this->digits[digitIndex + 1] -= 1;
+                this->digits[digitIndex] += this->TEN_TO_BASE;
+            }
+
+            this->digits[digitIndex] -= number % baseMultiplier;
+
+            this->NormalizeDigit(digitIndex);
+
+            number /= baseMultiplier;
+            baseMultiplier *= baseMultiplier;
+        }
+
+        while (this->digits[0] > 0 && this->digits.back() == 0) {
+            this->digits.pop_back();
+        }
+    }
+
     void operator*=(uint_fast64_t number) {
         int numberDigitPosition = 0;
         BigInt resultInteger{"0", this->BASE};
         while (number > 0) {
-            BigInt mulBigInt = *this;
+            BigInt tempBigInteger = *this;
 
             int multiplier = (number % this->TEN_TO_BASE);
-            for (int i = 1; i <= mulBigInt.digits[0]; i++) {
-                mulBigInt.digits[i] *= multiplier;
+            for (int i = 1; i <= tempBigInteger.digits[0]; i++) {
+                tempBigInteger.digits[i] *= multiplier;
             }
 
-            mulBigInt.digits.insert(mulBigInt.digits.begin() + 1, numberDigitPosition, 0);
-            mulBigInt.digits[0] += numberDigitPosition;
+            tempBigInteger.digits.insert(tempBigInteger.digits.begin() + 1, numberDigitPosition, 0);
+            tempBigInteger.digits[0] += numberDigitPosition;
 
-            for (int i = 1; i <= mulBigInt.digits[0]; i++) {
-                mulBigInt.NormalizeDigit(i);
+            for (int i = 1; i <= tempBigInteger.digits[0]; i++) {
+                tempBigInteger.NormalizeDigit(i);
             }
 
-            resultInteger += mulBigInt;
+            resultInteger += tempBigInteger;
             number /= this->TEN_TO_BASE;
             ++numberDigitPosition;
         }
@@ -162,6 +249,7 @@ public:
     void operator*=(const BigInt &mulBigInteger) {
         int numberDigitPosition = 0;
         BigInt resultInteger{"0", this->BASE};
+
         for (int i = 1; i <= mulBigInteger.digits[0]; i++) {
             BigInt tempBigInteger = *this;
 
@@ -170,8 +258,7 @@ public:
                 tempBigInteger.digits[j] *= multiplier;
             }
 
-            std::vector<int> zeros(numberDigitPosition, 0);
-            tempBigInteger.digits.insert(tempBigInteger.digits.begin() + 1, zeros.begin(), zeros.end());
+            tempBigInteger.digits.insert(tempBigInteger.digits.begin() + 1, numberDigitPosition, 0);
             tempBigInteger.digits[0] += numberDigitPosition;
 
             tempBigInteger.NormalizeDigit(i);
@@ -222,24 +309,24 @@ public:
 // BigInt(int base = DEFAULT_BASE, int max_digits = DEFAULT_MAX_DIGITS, uint_fast64_t inputString)
 //     : BASE{base}, MAX_DIGITS{max_digits} {}
 int main() {
-    BigInt ar{"1", 9};
+    BigInt ar{"10", 3};
 
-    for (int i = 2; i <= 100000; i++) {
-        ar *= i;
-    }
+    ar -= 100;
 
-    std::ofstream outputFile;
-    outputFile.open("big_factor");
+    std::cout << ar.getStringDigits() << "\n";
 
-    if (outputFile.is_open()) {
-        outputFile << ar.getStringDigits() << std::endl;
-    }
+    // std::ofstream outputFile;
+    // outputFile.open("big_factor");
 
-    outputFile.close();
-
-    // for (const int &digit : ar.getDigits()) {
-    //     std::cout << digit << " ";
+    // if (outputFile.is_open()) {
+    //     outputFile << ar.getStringDigits() << std::endl;
     // }
+
+    // outputFile.close();
+
+    for (const int &digit : ar.getDigits()) {
+        std::cout << digit << " ";
+    }
 
     // do {
     //     std::cout << '\n'
