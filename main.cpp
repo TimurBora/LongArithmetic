@@ -53,7 +53,7 @@ private:
         }
 
         if (this->digits[0] > numDigits) {
-            return true;
+            return false;
         }
 
         int baseMultiplier = std::pow(this->TEN_TO_BASE, numDigits - 1);
@@ -90,10 +90,6 @@ public:
         std::string digitsString{};
         for (int i = this->digits[0]; i >= 1; i--) {
             std::string digitString = std::to_string(this->digits[i]);
-
-            if (digitString == "0") {
-                continue;
-            }
 
             while (digitString.size() < this->BASE) {
                 if (i == this->digits[0]) {
@@ -187,6 +183,7 @@ public:
             for (int i = 1; i <= this->digits[0]; i++) {
                 number -= this->digits[i] * std::pow(this->TEN_TO_BASE, i - 1);
                 this->digits[i] = 0;
+                --this->digits[0];
             }
             this->isNegative = true;
             *this += number;
@@ -210,6 +207,7 @@ public:
 
         while (this->digits[0] > 0 && this->digits.back() == 0) {
             this->digits.pop_back();
+            --this->digits[0];
         }
     }
 
@@ -309,9 +307,9 @@ public:
 // BigInt(int base = DEFAULT_BASE, int max_digits = DEFAULT_MAX_DIGITS, uint_fast64_t inputString)
 //     : BASE{base}, MAX_DIGITS{max_digits} {}
 int main() {
-    BigInt ar{"10", 3};
+    BigInt ar{"1100", 3};
 
-    ar -= 100;
+    ar -= 200;
 
     std::cout << ar.getStringDigits() << "\n";
 
