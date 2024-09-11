@@ -307,24 +307,26 @@ public:
 // BigInt(int base = DEFAULT_BASE, int max_digits = DEFAULT_MAX_DIGITS, uint_fast64_t inputString)
 //     : BASE{base}, MAX_DIGITS{max_digits} {}
 int main() {
-    BigInt ar{"1100", 3};
+    BigInt ar{"1", 9};
 
-    ar -= 200;
+    // std::cout << ar.getStringDigits() << "\n";
 
-    std::cout << ar.getStringDigits() << "\n";
-
-    // std::ofstream outputFile;
-    // outputFile.open("big_factor");
-
-    // if (outputFile.is_open()) {
-    //     outputFile << ar.getStringDigits() << std::endl;
-    // }
-
-    // outputFile.close();
-
-    for (const int &digit : ar.getDigits()) {
-        std::cout << digit << " ";
+    for (int i = 2; i <= 300000; i++) {
+        ar *= i;
     }
+
+    std::ofstream outputFile;
+    outputFile.open("big_factor");
+
+    if (outputFile.is_open()) {
+        outputFile << ar.getStringDigits() << std::endl;
+    }
+
+    outputFile.close();
+
+    // for (const int &digit : ar.getDigits()) {
+    //     std::cout << digit << " ";
+    // }
 
     // do {
     //     std::cout << '\n'
